@@ -87,10 +87,11 @@ class Function(object):
         """
 
         fs = self.function_space
-
+        #does not seem to work, something to do with the implementation of the tuples in the node entity list,
+        #although I'm not sure if the actual interpolation is correct either
         if isinstance(fs.element, VectorFiniteElement):
             cg1 = VectorFiniteElement(fs.element)
-            coord_map = cg1.tabulate(fs.element.nodes)
+            coord_map = cg1.tabulate(cg1.element.nodes)
             cg1fs = FunctionSpace(fs.mesh, cg1)
             for c in range(fs.mesh.entity_counts[-1]):
                 # Interpolate the coordinates to the cell nodes.
