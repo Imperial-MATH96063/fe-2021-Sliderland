@@ -12,14 +12,32 @@ import scipy.sparse as sp
 import scipy.sparse.linalg as splinalg
 from argparse import ArgumentParser
 
+from helmholtz import assemble
+
 
 def assemble(fs, f):
     """Assemble the finite element system for the Poisson problem given
     the function space in which to solve and the right hand side
     function."""
 
-    raise NotImplementedError
+    #Create an appropriate quadrature
 
+    G = gauss_quadrature(fs.element.cell, 2*fs.element.degree)
+
+
+    #assemble system as normal
+    pre_boundaries_A, pre_boundaries_l = helmholtz.assemble(fs, f, quadrature=G)
+    #find boundary nodes
+    boundary_nodes_curr = boundary_nodes(fs)
+    #set global vector rows corresponding to boundary nodes and setting them to 0
+    l = pre_boundaries_l
+    l[boundary_nodes_curr] = 0
+    #set 
+    A = pre_boundaries_A
+    A[boundary_nodes_curr, :] = 0
+    A[np.ix_(boundary_nodes_curr, boundary_nodes_curr)] = 0
+
+    return A, l
 
 def boundary_nodes(fs):
     """Find the list of boundary nodes in fs. This is a

@@ -43,8 +43,13 @@ class QuadratureRule(object):
         The implementation of this method is left as an :ref:`exercise
         <ex-integrate>`.
         """
-
-        raise NotImplementedError
+        #evaluate the function at the quadrature points and store them in a list
+        evaluated_points = []
+        for x in self.points:
+          evaluated_points.append(function(x))
+        #retun the dot product of the function evaluated at the quadrature points
+        #with their corresponding weights
+        return np.dot(evaluated_points, self.weights)
 
 
 def gauss_quadrature(cell, degree):
