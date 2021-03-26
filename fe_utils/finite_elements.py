@@ -262,26 +262,26 @@ class LagrangeElement(FiniteElement):
         # basis coefficients.
         super(LagrangeElement, self).__init__(cell, degree, nodes, entity_nodes=entities)
 
-# class VectorFiniteElement(FiniteElement):
-#     def __init__(self, fe):
-#         self.cell = fe.cell
-#         self.degree = fe.degree
-#         self.fe = fe
-#         self.dim = len(fe.entity_nodes)
-#         self.entity_nodes = fe.entity_nodes
+class VectorFiniteElement(FiniteElement):
+    def __init__(self, fe):
+        self.cell = fe.cell
+        self.degree = fe.degree
+        self.fe = fe
+        self.dim = len(fe.entity_nodes)
+        self.entity_nodes = fe.entity_nodes
 
-#         for i in len(range(self.entity_nodes.keys())):
-#             for j in len(range(self.entity_nodes[i].keys())):
-#                 self.entity_nodes[i][j] = tuple([self.dim*self.entity_nodes[i][j]+i for i in range(self.dim-1)])
+        for i in len(range(self.entity_nodes.keys())):
+            for j in len(range(self.entity_nodes[i].keys())):
+                self.entity_nodes[i][j] = tuple([self.dim*self.entity_nodes[i][j]+i for i in range(self.dim-1)])
 
-#         self.noders_per_entity = self.dim*fe.nodes_per_entity
-#     def tabulate(self, points, grad=False):
-#         temp_tabulate = self.fe.tabulate(points, grad=grad)
-#         if not grad:
-#             e = np.array([[1,0], [0,1]])
-#             to_return = []
-#             for i in range(2*temp_tabulate.shape[0]+1):
-#                     to_return.append(np.array([temp_tabulate[i//2, i//2], temp_tabulate[1, i//2]]))
+        self.noders_per_entity = self.dim*fe.nodes_per_entity
+    def tabulate(self, points, grad=False):
+        temp_tabulate = self.fe.tabulate(points, grad=grad)
+        if not grad:
+            e = np.array([[1,0], [0,1]])
+            to_return = []
+            for i in range(2*temp_tabulate.shape[0]+1):
+                    to_return.append(np.array([temp_tabulate[i//2, i//2], temp_tabulate[1, i//2]]))
             
 
 
