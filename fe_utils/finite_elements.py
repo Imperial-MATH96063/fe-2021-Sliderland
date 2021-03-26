@@ -60,16 +60,19 @@ def vandermonde_matrix(cell, degree, points, grad=False):
     <ex-vandermonde>`.
     """
     if not grad:
+        #for a 1D cell, we simply take the sequential powers of the corresponding points
         if cell.dim == 1:
             x = points[:, 0]
             van_mat = []
             for power in range(0, degree+1):
                 van_mat.append(np.power(x, power))
             return np.array(van_mat).T
-        if cell.dim == 2:
+        else:
             x = points[:, 0]
             y = points[:, 1]
             van_mat = []
+            #for a 2d matrix we loop over the number of degrees, and for each degree, we compute the
+            #different combinations of powers for x and y
             for curr_deg in range(0, degree+1):
                 for n in range(0, curr_deg+1):
                     curr_x_power = np.power(x, curr_deg-n)
@@ -80,22 +83,26 @@ def vandermonde_matrix(cell, degree, points, grad=False):
         if cell.dim ==1 :
             x = points[:, 0]
             van_grad = []
+            #in the 1D case we simply compute the 1st derivative of the nth power and place it in the nth position
+            #of our output array. Then we make sure that the corresponding output is a tensor
             for power in range(0, degree+1):
                 if power == 0:
                     van_grad.append(np.zeros(x.shape))
                 else:
                     van_grad.append(power*np.power(x, power-1))
             return np.expand_dims(np.array(van_grad).T, axis=2)
-        if cell.dim == 2:
+        else:
             x = points[:, 0]
             y = points[:, 1]
             van_mat = []
+            #loop over the number of degrees, then loop over all degrees less than it
             for curr_deg in np.arange(0., degree+1):
                 for n in np.arange(0, curr_deg+1):
 
                     partial_x = np.multiply((curr_deg-n)*np.power(x, curr_deg-n-1), np.power(y, n))
                     partial_y = np.multiply(np.power(x, curr_deg-n), n*np.power(y, n-1))
-
+                    #check if both powers are zero, or only one (and which one), as the
+                    #coordinate with power zero will have derivative 0
                     if n == 0 and curr_deg == 0:
                         partial_x = np.zeros(x.shape)
                         partial_y = np.zeros(y.shape)
@@ -106,7 +113,7 @@ def vandermonde_matrix(cell, degree, points, grad=False):
                     
                     curr_grad = np.array([partial_x, partial_y])
                     van_mat.append(curr_grad)
-
+            #return our tensor
             correctly_indexed = np.transpose(np.array(van_mat), (2, 0, 1))
             return np.nan_to_num(correctly_indexed)
 
@@ -262,26 +269,41 @@ class LagrangeElement(FiniteElement):
         # basis coefficients.
         super(LagrangeElement, self).__init__(cell, degree, nodes, entity_nodes=entities)
 
-# class VectorFiniteElement(FiniteElement):
-#     def __init__(self, fe):
-#         self.cell = fe.cell
-#         self.degree = fe.degree
-#         self.fe = fe
-#         self.dim = len(fe.entity_nodes)
-#         self.entity_nodes = fe.entity_nodes
+class VectorFiniteElement(FiniteElement):
+    def __init__(self, fe):
+        self.cell = fe.cell
+        self.degree = fe.degree
+        self.fe = fe
+        self.dim = len(fe.entity_nodes)
+        self.entity_nodes = fe.entity_nodes
 
-#         for i in len(range(self.entity_nodes.keys())):
-#             for j in len(range(self.entity_nodes[i].keys())):
-#                 self.entity_nodes[i][j] = tuple([self.dim*self.entity_nodes[i][j]+i for i in range(self.dim-1)])
+        for i in range(len(self.entity_nodes.keys())):
+            for j in range(len(self.entity_nodes[i].keys())):
+                if self.dim == 1:
+                    self.entity_nodes[i][j] = tuple(list(self.entity_nodes[i][j]))
+                else:
+                    temp_list = []
+                    for k in range(len(self.entity_nodes[i][j])):
+                        temp_list.append(tuple(list([(self.dim*self.entity_nodes[i][j][k]+l) for l in range(self.dim)])))
+                    self.entity_nodes[i][j] = temp_list
 
-#         self.noders_per_entity = self.dim*fe.nodes_per_entity
-#     def tabulate(self, points, grad=False):
-#         temp_tabulate = self.fe.tabulate(points, grad=grad)
-#         if not grad:
-#             e = np.array([[1,0], [0,1]])
-#             to_return = []
-#             for i in range(2*temp_tabulate.shape[0]+1):
-#                     to_return.append(np.array([temp_tabulate[i//2, i//2], temp_tabulate[1, i//2]]))
-            
+        self.nodes_per_entity = self.dim*fe.nodes_per_entity
+        self.nodes = np.repeat(fe.nodes, self.dim)
+        self.node_weights = np.repeat(np.eye(self.dim), self.dim, axis=0)
+
+    def tabulate(self, points, grad=False):
+        temp_tabulate = self.fe.tabulate(points, grad=grad)
+        if not grad:
+            to_return = []
+            for i in range(2*temp_tabulate.shape[0]+1):
+                curr_basis = temp_tabulate[:, i//2]
+                to_return.append(np.multiply(curr_basis, e[i%2, :]))
+            return np.array(to_return)
+        else:
+            to_return = []
+            for i in range(2*temp_tabulate.shape[0]+1):
+                curr_basis = temp_tabulate[:, i//2]
+                to_return.append(np.multiply(curr_basis, e[i%2, :]))
+            return np.array(to_return)            
 
 

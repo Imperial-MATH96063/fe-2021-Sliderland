@@ -18,8 +18,11 @@ def assemble(fs, f, quadrature=None):
     # Create an appropriate (complete) quadrature rule, unless one has been given to us
 
     Q=None
+
     if quadrature==None:
         Q = gauss_quadrature(fs.element.cell, fs.element.degree+1)
+    else:
+        Q = quadrature
 
     # Tabulate the basis functions and their gradients at the quadrature points.
 
@@ -44,7 +47,6 @@ def assemble(fs, f, quadrature=None):
                 jac = np.abs(np.linalg.det(fs.mesh.jacobian(c)))
                 temp1 = phi[i, q]
                 temp2 = Q.weights[i]
-                # l[fs.cell_nodes[c, :]] += phi[i, q]* innersum*Q.weights[q]*jac
                 l[fs.cell_nodes[c, :]] += temp1*innersum*temp2*jac
     
     #left hand side
@@ -53,39 +55,22 @@ def assemble(fs, f, quadrature=None):
     #quite think about the problem of building the left hand side matrix without explicitly looping over
     #all of the variables that are available to us.
 
-
-
-    # for c in range(fs.mesh.entity_counts[-1]):
-    #     curr_jac = fs.mesh.jacobian(c)
-    #     jac_inv_t = np.linalg.inv(curr_jac).T
-    #     jac_det = np.abs(np.linalg.det(curr_jac))
-    #     for i in range(phi.shape[0]):
-    #         for j in range(phi.shape[0]):
-    #             for q in range(phi.shape[0]):
-    #                 innersum = 0
-    #                 for alpha in range(curr_jac.shape[0]):
-    #                     for beta in range(curr_jac.shape[0]):
-    #                         for gamma in range(curr_jac.shape[0]):
-    #                             temp1 = jac_inv_t[beta, alpha] * phi_grad[q, i, beta]
-    #                             temp2 = jac_inv_t[gamma, alpha] *phi_grad[q, j, gamma]
-    #                             innersum += temp1*temp2 + phi[q, j]*phi[q, j]
-    #                 A[fs.cell_nodes[c][i], fs.cell_nodes[c][j]] += innersum*jac_det*Q.weights[q]
     for c in range(fs.mesh.entity_counts[-1]):
-    curr_jac = fs.mesh.jacobian(c)
-    jac_inv_t = np.linalg.inv(curr_jac).T
-    jac_det = np.abs(np.linalg.det(curr_jac))
-    for i in range(phi.shape[0]):
-        for j in range(phi.shape[0]):
-            for q in range(phi.shape[0]):
-                innersum = 0
-                for alpha in range(curr_jac.shape[0]):
-                    for beta in range(curr_jac.shape[0]):
-                        for gamma in range(curr_jac.shape[0]):
-                            temp1 = jac_inv_t[beta, alpha] * phi_grad[q, i, beta]
-                            temp2 = jac_inv_t[gamma, alpha] *phi_grad[q, j, gamma]
-                            innersum += temp1*temp2 + phi[q, j]*phi[q, j]
-                A[fs.cell_nodes[c][i], fs.cell_nodes[c][j]] += innersum*jac_det*Q.weights[q]
-    
+        curr_jac = fs.mesh.jacobian(c)
+        jac_inv_t = np.linalg.inv(curr_jac).T
+        jac_det = np.abs(np.linalg.det(curr_jac))
+        for i in range(phi.shape[1]):
+            for j in range(phi.shape[1]):
+                for q in range(phi.shape[0]):
+                    innersum = 0
+                    for alpha in range(curr_jac.shape[0]):
+                        for beta in range(curr_jac.shape[0]):
+                            for gamma in range(curr_jac.shape[0]):
+                                temp1 = jac_inv_t[beta, alpha] * phi_grad[q, i, beta]
+                                temp2 = jac_inv_t[gamma, alpha] *phi_grad[q, j, gamma]
+                                innersum += temp1*temp2 + phi[q, j]*phi[q, j]
+                    A[fs.cell_nodes[c][i], fs.cell_nodes[c][j]] += innersum*jac_det*Q.weights[q]
+
     return A, l
 
 
@@ -173,3 +158,18 @@ if __name__ == "__main__":
     #                             # A[np.ix_((fs.cell_nodes[c][i], fs.cell_nodes[c][j]))] += np.sum((temp1*temp2) + phi[q, i]*phi[q, j]*jac_det*Q.weights[q])
     #                             # A[fs.cell_nodes[c][i], fs.cell_nodes[c][j]] += np.sum((temp1*temp2) + phi[q, i]*phi[q, j]*jac_det*Q.weights[q])
     #                             A[fs.cell_nodes[c][i], fs.cell_nodes[c][j]] += np.sum((temp1*temp2) + phi[i, q]*phi[j, q]*jac_det*Q.weights[i])
+    # for c in range(fs.mesh.entity_counts[-1]):
+    #     curr_jac = fs.mesh.jacobian(c)
+    #     jac_inv_t = np.linalg.inv(curr_jac).T
+    #     jac_det = np.abs(np.linalg.det(curr_jac))
+    #     for i in range(phi.shape[0]):
+    #         for j in range(phi.shape[0]):
+    #             for q in range(phi.shape[0]):
+    #                 innersum = 0
+    #                 for alpha in range(curr_jac.shape[0]):
+    #                     for beta in range(curr_jac.shape[0]):
+    #                         for gamma in range(curr_jac.shape[0]):
+    #                             temp1 = jac_inv_t[beta, alpha] * phi_grad[q, i, beta]
+    #                             temp2 = jac_inv_t[gamma, alpha] *phi_grad[q, j, gamma]
+    #                             innersum += temp1*temp2 + phi[q, j]*phi[q, j]
+    #                 A[fs.cell_nodes[c][i], fs.cell_nodes[c][j]] += innersum*jac_det*Q.weights[q]
