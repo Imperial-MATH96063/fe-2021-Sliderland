@@ -2,6 +2,7 @@ from scipy.spatial import Delaunay
 import numpy as np
 import itertools
 from .finite_elements import LagrangeElement
+from .function_spaces import FunctionSpace
 from .reference_elements import ReferenceTriangle, ReferenceInterval
 
 
@@ -70,6 +71,13 @@ class Mesh(object):
         #: The :class:`~.reference_elements.ReferenceCell` of which this
         #: :class:`Mesh` is composed.
         self.cell = (0, ReferenceInterval, ReferenceTriangle)[self.dim]
+        
+        #associated linear lagrange element and its function space
+        self.cg1 = LagrangeElement(self.cell, 1)
+        self.cg1fs = FunctionSpace(self, self.cg1)
+
+        #Computes the factor that does not change over the mesh for the cell for the jacobian
+        self.jacobian_multiplier = self.cg1.tabulate(self.vertex_coords, grad=True)
 
     def adjacency(self, dim1, dim2):
         """Return the set of `dim2` entities adjacent to each `dim1`
@@ -86,14 +94,16 @@ class Mesh(object):
         :attr:`edge_vertices`, :attr:`cell_edges` and :attr:`cell_vertices`.
         """
 
-        if dim2 >= dim1:
+        if dim2 > dim1:
             raise ValueError("""dim2 must be less than dim1.""")
         if dim2 < 0:
             raise ValueError("""dim2 cannot be negative.""")
         if dim1 > self.dim:
             raise ValueError("""dim1 cannot exceed the mesh dimension.""")
 
-        if dim1 == 1:
+        if dim1 == dim2:
+            return np.array([[i] for i in range(self.entity_counts[dim1])])
+        elif dim1 == 1:
             if self.dim == 1:
                 return self.cell_vertices
             else:
@@ -111,8 +121,18 @@ class Mesh(object):
         :result: The Jacobian for cell ``c``.
         """
 
-        raise NotImplementedError
+        curr_coord = self.vertex_coords[self.cg1fs.cell_nodes[c, :], :]
 
+        # jac = np.zeros((self.dim,self.dim))
+        # for alpha in range(self.dim):
+        #     for beta in range(self.dim):
+        #         sum = 0
+        #         for j in range(len(curr_coord)):
+        #             sum += curr_coord[j, alpha] * self.jacobian_multiplier[c, j, beta]
+        #         jac[alpha][beta] = sum
+        # return jac
+        return np.einsum("jl, jk-> kl", curr_coord, self.jacobian_multiplier[0,:,:])
+        # return np.einsum("jl, ijk-> kl", self.vertex_coords, self.jacobian_multiplier)
 
 class UnitIntervalMesh(Mesh):
     """A mesh of the unit interval."""
